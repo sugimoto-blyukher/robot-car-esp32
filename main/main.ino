@@ -48,31 +48,34 @@ void loop() {
     Serial.print((char)inBuf[0]);
     Serial.println("");
 
+    //右旋回
     if (inBuf[0] == 'a') {
       SerialBT.println("right");
       Serial.println("right");
       right();
-      forward();
-      delay(100);
     }
+    //左旋回
     if (inBuf[0] == 'd') {
       SerialBT.println("left");
       Serial.println("left");
       left();
-      forward();
-      delay(100);
     }
-
+    //前進
     if (inBuf[0] == 'w') {
       SerialBT.println("w");
       Serial.println("w");
       forward();
-      delay(100);
     }
+    //後退
+    if (inBuf[0] == 'x') {
+      SerialBT.println("w");
+      Serial.println("w");
+      backward();
+    }
+    //停止
     if (inBuf[0] == 's') {
       SerialBT.println("s");
       Serial.println("s");
-
       stop();
     }
   }
@@ -155,19 +158,11 @@ void forward() {
 void right() {
   digitalWrite(IN1, HIGH);
   digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, LOW);
 }
 
 void left() {
-  digitalWrite(IN1, HIGH);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, HIGH);
-  digitalWrite(IN4, LOW);
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, HIGH);
