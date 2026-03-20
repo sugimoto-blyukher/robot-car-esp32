@@ -1,3 +1,4 @@
+#include "BluetoothSerial.h"
 #include <Ps3Controller.h>
 
 const int IN1 = 23;
@@ -6,6 +7,10 @@ const int IN3 = 0;
 const int IN4 = 2;  
 
 int battery = 0;
+
+String cmd[5] = { "stop", "forward", "right", "left", "backward" };
+
+char buffer[100];
 
 void stopMotor();
 void forward();
@@ -44,11 +49,11 @@ void loop() {
   if (Ps3.data.button.up) {
     forward();
   } else if (Ps3.data.button.right) {
-    right();
+    left();
   } else if (Ps3.data.button.down) {
     backward();
   } else if (Ps3.data.button.left) {
-    left();
+    right();
   } else if (Ps3.data.button.circle) {
     stopMotor();
   } else {
