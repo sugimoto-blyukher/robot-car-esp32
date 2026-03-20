@@ -1,147 +1,65 @@
-#include "BluetoothSerial.h"
-BluetoothSerial SerialBT;
+#include <Ps3Controller.h>
 
 const int IN1 = 23;
 const int IN2 = 22;
-const int IN3 = 0;
-const int IN4 = 2;
+const int IN3 = 0;  
+const int IN4 = 2;  
 
-#define ESP_MAC_BT 90 : 15 : 06 : 7C : 3D : C2
+int battery = 0;
 
-String cmd[5] = { "stop", "forward", "right", "left", "backward" };
-
-char buffer[100];
-
-String label = "stop";
-
-const unsigned long frame_ms = 10;
-unsigned long merc;        //フレーム管理時計
-unsigned long curr;        //現在時刻
-unsigned long curr_micro;  //現在時刻をマイクロ秒で取得する用
-int framecount;            //現在フレーム何周期目かのカウンタ
-
-int i;
-
-void stop();
+void stopMotor();
 void forward();
 void right();
 void left();
 void backward();
+void onConnect();
+void onDisconnect();
+void notify();
 
 void setup() {
+  Serial.begin(115200);
+
   pinMode(IN1, OUTPUT);
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
 
-  Serial.begin(115200);
-  SerialBT.begin("SPP-TEST");
+  stopMotor();
+
+  Ps3.attach(notify);
+  Ps3.attachOnConnect(onConnect);
+  Ps3.attachOnDisconnect(onDisconnect);
+  Ps3.begin("90:15:06:7c:3d:c2");
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
-  if (SerialBT.available()) {
-    byte inBuf[1];
-    SerialBT.readBytes(inBuf, 1);
-
-    Serial.print((char)inBuf[0]);
-    Serial.println("");
-
-    //右旋回
-    if (inBuf[0] == 'a') {
-      SerialBT.println("right");
-      Serial.println("right");
-      right();
-    }
-    //左旋回
-    if (inBuf[0] == 'd') {
-      SerialBT.println("left");
-      Serial.println("left");
-      left();
-    }
-    //前進
-    if (inBuf[0] == 'w') {
-      SerialBT.println("w");
-      Serial.println("w");
-      forward();
-    }
-    //後退
-    if (inBuf[0] == 'x') {
-      SerialBT.println("w");
-      Serial.println("w");
-      backward();
-    }
-    //停止
-    if (inBuf[0] == 's') {
-      SerialBT.println("s");
-      Serial.println("s");
-      stop();
-    }
-  }
-
-  int index = 0;
-  bool hasData = false;
-
-  while (Serial.available() > 0) {
-    hasData = true;
-    buffer[index] = Serial.read();
-    index++;
-    if (index >= 100) {
-      break;
-    }
-  }
-
-  //int* pindex = &index;
-
-  buffer[index] = '\0';
-  if (hasData == true) {
-    label = buffer;
-    label.trim();
-  }
-  /*
-  if (label == cmd[0]) {
-    stop();
-  } else if (label == cmd[1]) {
-    forward();
-  } else if (label == cmd[2]) {
-    right();
-  } else if (label == cmd[3]) {
-    left();
-  } else if (label == cmd[4]) {
-    backward();
-  } else {
-    Serial.println("Invalid command");
-  }
-*/
-  delay(1000);
-  Serial.println(label);
-  /*
-
-  curr = millis(); //現在時刻を取得
-  if (curr > merc) {
-    digitalWrite(DIRA, LOW);
-    digitalWrite(DIRB, LOW);
-  } else {
+  // 切断中は必ず停止
+  if (!Ps3.isConnected()) {
+    stopMotor();
+    delay(20);
     return;
   }
-  framecount = framecount + 2;
-  if (framecount > 10000) {
-    framecount = 0;
+
+  // 押している間だけ動く
+  if (Ps3.data.button.up) {
+    forward();
+  } else if (Ps3.data.button.right) {
+    right();
+  } else if (Ps3.data.button.down) {
+    backward();
+  } else if (Ps3.data.button.left) {
+    left();
+  } else if (Ps3.data.button.circle) {
+    stopMotor();
+  } else {
+    // 何も押されていなければ停止
+    stopMotor();
   }
 
-  curr = millis(); //現在時刻を取得
-  curr_micro = micros(); //現在時刻をマイクロ秒で取得する用
-  while (curr < merc) {
-    curr = millis(); //現在時刻を取得
-  }
-
-  merc += frame_ms;
-
-*/
+  delay(20);
 }
 
-void stop() {
+void stopMotor() {
   digitalWrite(IN1, LOW);
   digitalWrite(IN2, LOW);
   digitalWrite(IN3, LOW);
@@ -174,4 +92,28 @@ void backward() {
   digitalWrite(IN2, HIGH);
   digitalWrite(IN3, LOW);
   digitalWrite(IN4, HIGH);
+}
+
+void onConnect() {
+  Serial.println("Connected.");
+}
+
+void onDisconnect() {
+  Serial.println("Disconnected.");
+  stopMotor();
+}
+
+void notify() {
+  if (battery != Ps3.data.status.battery) {
+    battery = Ps3.data.status.battery;
+    Serial.print("The controller battery is ");
+
+    if (battery == ps3_status_battery_charging) Serial.println("charging");
+    else if (battery == ps3_status_battery_full) Serial.println("FULL");
+    else if (battery == ps3_status_battery_high) Serial.println("HIGH");
+    else if (battery == ps3_status_battery_low) Serial.println("LOW");
+    else if (battery == ps3_status_battery_dying) Serial.println("DYING");
+    else if (battery == ps3_status_battery_shutdown) Serial.println("SHUTDOWN");
+    else Serial.println("UNDEFINED");
+  }
 }
